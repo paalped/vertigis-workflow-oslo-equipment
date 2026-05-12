@@ -79,7 +79,7 @@ Om **Annen applikasjon** av en eller annen grunn ikke finnes eller ikke lar dere
 
 #### 3. Fyll inn detaljer
 
-1. **URL:** lim inn manifestet — hele adressen må slutte på **`activitypack.json`**.  
+1. **URL** (kan hete **Applikasjons-URL**, **Manifest-URL** e.l.): lim inn manifestet — hele adressen må slutte på **`activitypack.json`**.  
 2. **Tittel** og evt. **mapper** som for andre elementer.  
 3. **Tag / nøkkelord (obligatorisk for VertiGIS):** legg inn nøyaktig **`geocortex-workflow-activity-pack`**. Uten denne taggen **registreres ikke** pakka i Workflow Designer.  
 4. Lagre (f.eks. **Legg til element** / **Add item**).
