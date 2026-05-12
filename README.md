@@ -2,23 +2,20 @@
 
 VertiGIS Studio Workflow activity pack: merge **ledning** equipment codes with **kum** (manhole) codes for DV/SOAP-style `<Equipment>` payloads. This centralizes the pattern that was spread across Evaluate steps (`sid_array` + `psid_fcode_array`) in Oslo VA workflows.
 
-## Activity: **Merge Line and Manhole Equipment Codes**
+## Activity: **Merge Line and Manhole Equipment Codes** (pakke **v1.1.0**)
 
-Toolbox name is English-only for clarity. All inputs are optional unless you need that side of the merge.
+- **Hardkodede attributtnavn (Oslo VA / DV)** — ikke Workflow-inndata:  
+  - Ekstern referanse: **`EXTERNREF`** (også treff på `ExternRef` / `externref`, case-varianter via attributtnøkler).  
+  - Ellers **`FCODE`** + **`LSID`** på **ledning**, og **`FCODE`** + **`PSID`** på **kum**.  
+  - Ingen skilletegn mellom `FCODE` og id (samme som tidligere standard i pakka).
 
-- **Inputs (feature-first)**  
-  - **`lineFeatures`** — Line / pipe features (graphics or plain `attributes` objects). One code per feature: **EXTERNREF**, else **FCODE + LSID** (field names overridable).  
-  - **`manholeFeatures`** — Manhole (*kum*) point features. One code per feature: **EXTERNREF**, else **FCODE + PSID**. Omit or **`[]`** if you do not want manholes in the list (replaces the old “include” flag).  
-  - **`externRefFieldNames`** — Optional ordered list of EXTERNREF attribute names (case-insensitive).  
-  - **`fcodeFieldName`** — Default `FCODE`.  
-  - **`lineSegmentIdFieldName`** — Default `LSID` (used with FCODE on **line** features).  
-  - **`lineFcodeSegmentSeparator`** — Between FCODE and line id; default empty string.  
-  - **`manholePointIdFieldName`** — Default `PSID` (used with FCODE on **manhole** features).  
-  - **`manholeFcodePointSeparator`** — Between FCODE and PSID; default empty string.  
-  - **`deduplicate`** — Default `true` (first occurrence wins).
+- **Inputs**  
+  - **`lineFeatures`** — Ledningsfeatures; én kode per feature etter regelen over.  
+  - **`manholeFeatures`** — Kum-features; samme EXTERNREF/FCODE+PSID-logikk. Uten liste eller **`[]`** = ingen kummer.  
+  - **`deduplicate`** — Standard `true` (første treff vinner).
 
-- **Backward compatibility (runtime only)**  
-  Older workflows may still pass `lineEquipmentCodes`, `kumFeatures`, `includeKummer`, `psidFieldName`, or `fcodePsidSeparator`; these are still read in code but are no longer listed in the Designer.
+- **Backward compatibility (runtime)**  
+  Gamle workflows kan fortsatt sende `lineEquipmentCodes`, `kumFeatures`, `includeKummer`. Tidligere inndata for feltnavn (`externRefFieldNames`, `psidFieldName`, osv.) **ignoreres** — attributtene er faste i **v1.1.0**.
 
 - **Outputs**  
   - `equipmentCodes` — `string[]`  

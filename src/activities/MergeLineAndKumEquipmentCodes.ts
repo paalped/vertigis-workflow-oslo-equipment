@@ -1,53 +1,28 @@
 import type { IActivityContext, IActivityHandler } from "@vertigis/workflow/IActivityHandler";
 
+/**
+ * Oslo VA / DV feature attributes used when EXTERNREF is missing / for FCODE pairs.
+ * Fixed for this activity version — not exposed as Workflow inputs.
+ */
+const EXTERNREF_LOOKUP_NAMES = ["EXTERNREF", "ExternRef", "externref"] as const;
+const FIELD_FCODE = "FCODE";
+const FIELD_LSID = "LSID";
+const FIELD_PSID = "PSID";
+/** Between FCODE and LSID / PSID when building codes from attributes (empty = concat). */
+const FCODE_ID_SEPARATOR = "";
+
 export interface MergeLineAndKumEquipmentCodesInputs {
     /**
      * @displayName Line features
-     * @description Pipe / line features (graphics). One equipment code per feature: EXTERNREF, or FCODE + line segment id (default LSID).
+     * @description Pipe / line features (graphics). One equipment code per feature: EXTERNREF, or FCODE + LSID (fixed field names).
      */
     lineFeatures?: unknown[];
 
     /**
      * @displayName Manhole features
-     * @description Manhole (kum) point features. One equipment code per feature: EXTERNREF, or FCODE + PSID. Omit or pass an empty list to exclude manholes.
+     * @description Manhole (kum) point features. One code per feature: EXTERNREF, or FCODE + PSID. Omit or pass an empty list to exclude manholes.
      */
     manholeFeatures?: unknown[];
-
-    /**
-     * @displayName Extern reference field names
-     * @description Attribute names for external reference, in order of preference (case-insensitive match). Used for both line and manhole features.
-     */
-    externRefFieldNames?: string[];
-
-    /**
-     * @displayName FCODE field name
-     * @description Used when building codes from FCODE + line segment id or FCODE + point id.
-     */
-    fcodeFieldName?: string;
-
-    /**
-     * @displayName Line segment id field name
-     * @description Line features: attribute used with FCODE when EXTERNREF is missing (default LSID).
-     */
-    lineSegmentIdFieldName?: string;
-
-    /**
-     * @displayName FCODE and line segment id separator
-     * @description Joins FCODE and line segment id when EXTERNREF is absent. Empty string means no separator.
-     */
-    lineFcodeSegmentSeparator?: string;
-
-    /**
-     * @displayName Manhole point id field name
-     * @description Manhole features: attribute used with FCODE when EXTERNREF is missing (default PSID).
-     */
-    manholePointIdFieldName?: string;
-
-    /**
-     * @displayName FCODE and manhole point id separator
-     * @description Joins FCODE and manhole point id when EXTERNREF is absent. Empty string means no separator.
-     */
-    manholeFcodePointSeparator?: string;
 
     /**
      * @displayName Deduplicate
@@ -60,8 +35,6 @@ type LegacyMergeInputs = {
     lineEquipmentCodes?: string | string[];
     kumFeatures?: unknown[];
     includeKummer?: boolean;
-    psidFieldName?: string;
-    fcodePsidSeparator?: string;
 };
 
 export interface MergeLineAndKumEquipmentCodesOutputs {
@@ -115,7 +88,7 @@ function getAttributes(feature: unknown): Record<string, unknown> | undefined {
     return f;
 }
 
-function pickString(attrs: Record<string, unknown>, names: string[]): string | undefined {
+function pickString(attrs: Record<string, unknown>, names: readonly string[]): string | undefined {
     const keys = Object.keys(attrs);
     for (const name of names) {
         const direct = attrs[name];
@@ -142,31 +115,25 @@ function uniqueOrdered(codes: string[]): string[] {
     return out;
 }
 
-function codeFromExternOrFcodePair(
+function codeFromDvFeature(
     attrs: Record<string, unknown>,
-    externNames: string[],
-    fcodeName: string,
-    secondIdName: string,
-    separator: string
+    secondIdField: typeof FIELD_LSID | typeof FIELD_PSID
 ): string | undefined {
-    const ext = pickString(attrs, externNames);
+    const ext = pickString(attrs, EXTERNREF_LOOKUP_NAMES);
     if (ext) {
         return ext;
     }
-    const fcode = pickString(attrs, [fcodeName]);
-    const second = pickString(attrs, [secondIdName]);
+    const fcode = pickString(attrs, [FIELD_FCODE]);
+    const second = pickString(attrs, [secondIdField]);
     if (fcode && second) {
-        return `${fcode}${separator}${second}`;
+        return `${fcode}${FCODE_ID_SEPARATOR}${second}`;
     }
     return undefined;
 }
 
 function codesFromFeatureList(
     features: unknown[],
-    externNames: string[],
-    fcodeName: string,
-    secondFieldName: string,
-    separator: string
+    secondIdField: typeof FIELD_LSID | typeof FIELD_PSID
 ): string[] {
     const out: string[] = [];
     for (const feature of features) {
@@ -174,7 +141,7 @@ function codesFromFeatureList(
         if (!attrs) {
             continue;
         }
-        const code = codeFromExternOrFcodePair(attrs, externNames, fcodeName, secondFieldName, separator);
+        const code = codeFromDvFeature(attrs, secondIdField);
         if (code) {
             out.push(code);
         }
@@ -184,7 +151,7 @@ function codesFromFeatureList(
 
 /**
  * @displayName Merge Line and Manhole Equipment Codes
- * @description Builds one equipment code list for DV SOAP-style payloads from line features and manhole features (EXTERNREF or FCODE+ids). Same pattern as Oslo VA sid / psid_fcode lists.
+ * @description Builds one equipment code list for DV SOAP-style payloads from line and manhole features. Uses fixed Oslo VA attributes: EXTERNREF (or ExternRef/externref), else FCODE+LSID on lines and FCODE+PSID on manholes; no separator between FCODE and id. Pack version 1.1.0.
  * @category Oslo VA
  */
 export class MergeLineAndKumEquipmentCodes implements IActivityHandler {
@@ -195,24 +162,10 @@ export class MergeLineAndKumEquipmentCodes implements IActivityHandler {
         const legacy = inputs as MergeLineAndKumEquipmentCodesInputs & LegacyMergeInputs;
 
         const deduplicate = legacy.deduplicate !== false;
-        const externRefFieldNames = legacy.externRefFieldNames?.length
-            ? legacy.externRefFieldNames
-            : ["EXTERNREF", "ExternRef", "externref"];
-        const fcodeFieldName = legacy.fcodeFieldName ?? "FCODE";
-        const lineSegField = legacy.lineSegmentIdFieldName ?? "LSID";
-        const lineSep = legacy.lineFcodeSegmentSeparator ?? "";
-        const manholePointField = legacy.manholePointIdFieldName ?? legacy.psidFieldName ?? "PSID";
-        const manholeSep = legacy.manholeFcodePointSeparator ?? legacy.fcodePsidSeparator ?? "";
 
         let linePart: string[] = [];
         if (legacy.lineFeatures?.length) {
-            linePart = codesFromFeatureList(
-                legacy.lineFeatures,
-                externRefFieldNames,
-                fcodeFieldName,
-                lineSegField,
-                lineSep
-            );
+            linePart = codesFromFeatureList(legacy.lineFeatures, FIELD_LSID);
         } else if (legacy.lineEquipmentCodes != null) {
             linePart = normalizeLineCodes(legacy.lineEquipmentCodes);
         }
@@ -221,13 +174,7 @@ export class MergeLineAndKumEquipmentCodes implements IActivityHandler {
         const includeManholes = legacy.includeKummer !== false;
         let manholePart: string[] = [];
         if (includeManholes && manholeList.length > 0) {
-            manholePart = codesFromFeatureList(
-                manholeList,
-                externRefFieldNames,
-                fcodeFieldName,
-                manholePointField,
-                manholeSep
-            );
+            manholePart = codesFromFeatureList(manholeList, FIELD_PSID);
         }
 
         const merged = [...linePart, ...manholePart];
