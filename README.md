@@ -2,27 +2,27 @@
 
 VertiGIS Studio Workflow activity pack: **hovedfeatures** + **tilleggsfeatures** til én DV/SOAP **`<Equipment>`**-liste (Oslo VA), med fast EXTERNREF / FCODE+LSID eller FCODE+PSID.
 
-## Activity: **Slå sammen ledning og kum utstyrskoder** (pakke **v2.0.0**)
+## Activity: **DVFeatureEvaluator** (pakke **v3.0.0**)
 
-Ingen bakoverkompatibilitet med eldre feltnavn — bruk bare tabellen under.
+**Breaking:** Tidligere aktivitetsklasse **`MergeLineAndKumEquipmentCodes`** er erstattet. Eksisterende workflows må bytte til **DVFeatureEvaluator** (nytt steg i Designer etter oppfrisking av aktivitetspakken).
 
-### Hardkodede attributter
+### Hardkodede attributter (kun store bokstaver)
 
-**EXTERNREF** (og vanlige varianter), ellers **FCODE** + **LSID** på **ledning**, **FCODE** + **PSID** på **kum** og **brann**. Ingen skilletegn mellom FCODE og id. **Tilleggsfeatures** enkodes alltid med **PSID**-regelen.
+**EXTERNREF**, ellers **FCODE** + **LSID** (ledning) eller **FCODE** + **PSID** (kum/brann). Ingen skilletegn mellom FCODE og id. **Tilleggsfeatures** bruker alltid **PSID**-regelen.
 
 ### Inputs
 
 | Nøkkel | Designer (kort) |
 |--------|-----------------|
-| **`mainFeatures`** | *Hovedfeatures* — typ. `selectedFeatureSet.featureSet.features` |
-| **`includedFeatures`** | *Tilleggsfeatures* — valgfritt; ved ledning kun hvis spyling er sann |
-| **`mainFeatureType`** | *Hovedtype*: **`ledning`**, **`kum`**, **`brann`** (alias: `line`, `manhole`, `brannkum`, …) |
-| **`spylingInkluderKummer`** | *Inkluder kummer ved spyling* — bare relevant når typen er **ledning**; må være **sann** for at tillegg skal brukes |
-| **`deduplicate`** | *Fjern duplikater* (standard sann) |
+| **`mainFeatures`** | *Hovedfeatures* — tabell av features **eller** f.eks. `$selectedFeatureSet`, `.featureSet`, `.featureSet.features` (aktiviteten pakker ut via `attributes` / `features` / `featureSet`) |
+| **`includedFeatures`** | *Tilleggsfeatures* — samme utpakking; ved ledning kun hvis spyling er sann |
+| **`mainFeatureType`** | *Hovedtype* fra meny: **`ledning`**, **`kum`** eller **`brann`** |
+| **`spylingInkluderKummer`** | *Inkluder kummer ved spyling* — bare når typen er **ledning**; må være **sann** for tillegg |
+| **`uniqueEquipmentCodes`** | *Unike utstyrskoder for Equipment* — **sann** (standard): én oppføring per kode; **usann**: behold alle |
 
-Mangler **hovedtype**, behandles det som **ledning**.
+Verdi som ikke er **`kum`** eller **`brann`** (etter trim) behandles som **ledning**.
 
-Tom **`mainFeatures`** → `equipmentCodes` / `equipmentCodesCsv` er tomme.
+Tom **`mainFeatures`** (etter utpakking) → tomme outputs.
 
 ### Outputs
 

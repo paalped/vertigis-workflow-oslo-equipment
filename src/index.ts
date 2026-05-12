@@ -1,3 +1,3 @@
 // Activities will be re-exported from this file.
 
-export { MergeLineAndKumEquipmentCodes } from "./activities/MergeLineAndKumEquipmentCodes";
+export { DVFeatureEvaluator } from "./activities/DVFeatureEvaluator";

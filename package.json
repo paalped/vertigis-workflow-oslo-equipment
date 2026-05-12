@@ -1,8 +1,8 @@
 {
     "name": "vertigis-workflow-oslo-equipment",
     "private": true,
-    "version": "2.0.0",
-    "description": "Custom VertiGIS Studio Workflow activities for Oslo VA equipment-code merging (ledning + kum)",
+    "version": "3.0.0",
+    "description": "DVFeatureEvaluator — VertiGIS Workflow activity for Oslo VA DV/SOAP Equipment codes (ledning/kum/brann)",
     "license": "MIT",
     "author": "",
     "type": "module",
