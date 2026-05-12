@@ -1,10 +1,6 @@
 import type { IActivityContext, IActivityHandler } from "@vertigis/workflow/IActivityHandler";
 
-/**
- * Oslo VA / DV feature attributes used when EXTERNREF is missing / for FCODE pairs.
- * Fixed in code — not Workflow inputs.
- */
-const EXTERNREF_LOOKUP_NAMES = ["EXTERNREF", "ExternRef", "externref"] as const;
+const FIELD_EXTERNREF = "EXTERNREF";
 const FIELD_FCODE = "FCODE";
 const FIELD_LSID = "LSID";
 const FIELD_PSID = "PSID";
@@ -13,31 +9,31 @@ const FCODE_ID_SEPARATOR = "";
 export interface MergeLineAndKumEquipmentCodesInputs {
     /**
      * @displayName Hovedfeatures
-     * @description Brukerens hovedutvalg — typisk `selectedFeatureSet.featureSet.features` (eller tilsvarende).
+     * @description Features fra utvalg / query. Du kan sende f.eks. `$selectedFeatureSet`, `$selectedFeatureSet.featureSet` eller `$selectedFeatureSet.featureSet.features` — aktiviteten finner `attributes`, eller `features`, eller `featureSet` og pakker ut til en liste.
      */
-    mainFeatures?: unknown[];
+    mainFeatures?: unknown;
 
     /**
      * @displayName Tilleggsfeatures
-     * @description Ekstra features i samme utstyrsliste. Ved **ledning** brukes de bare når **Inkluder kummer ved spyling** er sann. Ved **kum** eller **brann** brukes de når lista ikke er tom.
+     * @description Samme utpakking som **Hovedfeatures**. Ved **ledning** brukes lista bare når **Inkluder kummer ved spyling** er sann. Ved **kum** eller **brann** brukes den når den ikke er tom.
      */
-    includedFeatures?: unknown[];
+    includedFeatures?: unknown;
 
     /**
      * @displayName Hovedtype
-     * @description **ledning** (FCODE+LSID), **kum** eller **brann** (FCODE+PSID). Alias: `line`, `manhole`, `brannkum`, osv.
+     * @description Verdi fra nedtrekksmeny: **`ledning`**, **`kum`** eller **`brann`** (én av disse tre).
      */
     mainFeatureType?: string;
 
     /**
      * @displayName Inkluder kummer ved spyling
-     * @description Gjelder når **Hovedtype** er **ledning**: **sann** = ta med **Tilleggsfeatures** (tilknyttede kummer). Ellers **usann** eller utelatt.
+     * @description Gjelder når **Hovedtype** er **ledning**: **sann** = ta med **Tilleggsfeatures**. Ellers **usann** eller utelatt.
      */
     spylingInkluderKummer?: boolean;
 
     /**
      * @displayName Unike utstyrskoder for Equipment
-     * @description **Sann** (standard): samme utstyrskode bare én gang i lista som sendes til DV/SOAP **Equipment** — hvis flere features ga samme kode, beholdes første rekkefølge. **Usann**: alle koder fra features tas med, også ved duplikater.
+     * @description **Sann** (standard): samme utstyrskode bare én gang i lista til DV/SOAP **Equipment**. **Usann**: behold alle koder, også duplikater.
      */
     uniqueEquipmentCodes?: boolean;
 }
@@ -54,6 +50,38 @@ export interface MergeLineAndKumEquipmentCodesOutputs {
     equipmentCodesCsv: string;
 }
 
+/**
+ * VertiGIS / ArcGIS: ett enkelt objekt kan være wrapper (`featureSet`, `features`) eller et feature med `attributes`.
+ * Rekkefølge: `attributes` → `features` → `featureSet`.
+ */
+function unwrapToFeatureList(input: unknown): unknown[] {
+    if (input == null) {
+        return [];
+    }
+    if (Array.isArray(input)) {
+        return input.flatMap((item) => unwrapToFeatureList(item));
+    }
+    if (typeof input !== "object") {
+        return [];
+    }
+    const o = input as Record<string, unknown>;
+
+    const attrs = o.attributes;
+    if (attrs && typeof attrs === "object" && !Array.isArray(attrs)) {
+        return [input];
+    }
+
+    if (Array.isArray(o.features)) {
+        return unwrapToFeatureList(o.features);
+    }
+
+    if (o.featureSet != null) {
+        return unwrapToFeatureList(o.featureSet);
+    }
+
+    return [];
+}
+
 function getAttributes(feature: unknown): Record<string, unknown> | undefined {
     if (!feature || typeof feature !== "object") {
         return undefined;
@@ -66,17 +94,10 @@ function getAttributes(feature: unknown): Record<string, unknown> | undefined {
     return f;
 }
 
-function pickString(attrs: Record<string, unknown>, names: readonly string[]): string | undefined {
-    const keys = Object.keys(attrs);
-    for (const name of names) {
-        const direct = attrs[name];
-        if (direct != null && String(direct).trim() !== "") {
-            return String(direct).trim();
-        }
-        const found = keys.find((k) => k.toLowerCase() === name.toLowerCase());
-        if (found != null && attrs[found] != null && String(attrs[found]).trim() !== "") {
-            return String(attrs[found]).trim();
-        }
+function attrString(attrs: Record<string, unknown>, field: string): string | undefined {
+    const v = attrs[field];
+    if (v != null && String(v).trim() !== "") {
+        return String(v).trim();
     }
     return undefined;
 }
@@ -97,22 +118,19 @@ function codeFromDvFeature(
     attrs: Record<string, unknown>,
     secondIdField: typeof FIELD_LSID | typeof FIELD_PSID
 ): string | undefined {
-    const ext = pickString(attrs, EXTERNREF_LOOKUP_NAMES);
+    const ext = attrString(attrs, FIELD_EXTERNREF);
     if (ext) {
         return ext;
     }
-    const fcode = pickString(attrs, [FIELD_FCODE]);
-    const second = pickString(attrs, [secondIdField]);
+    const fcode = attrString(attrs, FIELD_FCODE);
+    const second = attrString(attrs, secondIdField);
     if (fcode && second) {
         return `${fcode}${FCODE_ID_SEPARATOR}${second}`;
     }
     return undefined;
 }
 
-function codesFromFeatureList(
-    features: unknown[],
-    secondIdField: typeof FIELD_LSID | typeof FIELD_PSID
-): string[] {
+function codesFromFeatures(features: unknown[], secondIdField: typeof FIELD_LSID | typeof FIELD_PSID): string[] {
     const out: string[] = [];
     for (const feature of features) {
         const attrs = getAttributes(feature);
@@ -127,21 +145,15 @@ function codesFromFeatureList(
     return out;
 }
 
-function normalizeMainFeatureType(v: unknown): "ledning" | "kum" | "brann" | null {
-    if (v == null) {
-        return null;
-    }
-    const s = String(v).trim().toLowerCase();
-    if (s === "ledning" || s === "line" || s === "pipe" || s === "rør") {
-        return "ledning";
-    }
-    if (s === "kum" || s === "manhole" || s === "manholes") {
+function normalizeMainFeatureType(v: unknown): "ledning" | "kum" | "brann" {
+    const s = String(v ?? "").trim().toLowerCase();
+    if (s === "kum") {
         return "kum";
     }
-    if (s === "brann" || s === "brannkum" || s === "fire" || s === "hydrant") {
+    if (s === "brann") {
         return "brann";
     }
-    return null;
+    return "ledning";
 }
 
 function idFieldForMainType(t: "ledning" | "kum" | "brann"): typeof FIELD_LSID | typeof FIELD_PSID {
@@ -150,10 +162,10 @@ function idFieldForMainType(t: "ledning" | "kum" | "brann"): typeof FIELD_LSID |
 
 function resolveIncludedToEncode(
     mainType: "ledning" | "kum" | "brann",
-    included: unknown[] | undefined,
+    included: unknown[],
     spylingInkluderKummer: boolean | undefined
 ): unknown[] {
-    if (!Array.isArray(included) || included.length === 0) {
+    if (included.length === 0) {
         return [];
     }
     if (mainType === "ledning") {
@@ -164,7 +176,7 @@ function resolveIncludedToEncode(
 
 /**
  * @displayName Slå sammen ledning og kum utstyrskoder
- * @description DV/SOAP utstyrskoder fra **hovedfeatures** + valgfrie **tilleggsfeatures**. **ledning** → LSID, **kum** / **brann** → PSID. Tillegg enkodes alltid med PSID-regel. Pakke v2.1.0.
+ * @description Utstyrskoder til DV/SOAP **Equipment** fra features (**EXTERNREF**, ellers **FCODE**+**LSID** på ledning og **FCODE**+**PSID** på kum/brann). Tilleggsfeatures enkodes med **PSID**. Pakke v2.2.0.
  * @category Oslo VA
  */
 export class MergeLineAndKumEquipmentCodes implements IActivityHandler {
@@ -173,14 +185,14 @@ export class MergeLineAndKumEquipmentCodes implements IActivityHandler {
         _context: IActivityContext
     ): Promise<MergeLineAndKumEquipmentCodesOutputs> {
         const collapseDuplicates = inputs.uniqueEquipmentCodes !== false;
-        const main = inputs.mainFeatures;
-        if (!Array.isArray(main) || main.length === 0) {
+        const mainList = unwrapToFeatureList(inputs.mainFeatures);
+        if (mainList.length === 0) {
             return { equipmentCodes: [], equipmentCodesCsv: "" };
         }
 
-        const mainType = normalizeMainFeatureType(inputs.mainFeatureType) ?? "ledning";
+        const mainType = normalizeMainFeatureType(inputs.mainFeatureType);
         const mainField = idFieldForMainType(mainType);
-        const mainCodes = codesFromFeatureList(main, mainField);
+        const mainCodes = codesFromFeatures(mainList, mainField);
 
         let linePart: string[] = [];
         let pointPart: string[] = [];
@@ -191,13 +203,10 @@ export class MergeLineAndKumEquipmentCodes implements IActivityHandler {
             pointPart = mainCodes;
         }
 
-        const extra = resolveIncludedToEncode(
-            mainType,
-            inputs.includedFeatures,
-            inputs.spylingInkluderKummer
-        );
+        const includedFlat = unwrapToFeatureList(inputs.includedFeatures);
+        const extra = resolveIncludedToEncode(mainType, includedFlat, inputs.spylingInkluderKummer);
         if (extra.length > 0) {
-            pointPart = [...pointPart, ...codesFromFeatureList(extra, FIELD_PSID)];
+            pointPart = [...pointPart, ...codesFromFeatures(extra, FIELD_PSID)];
         }
 
         const merged = [...linePart, ...pointPart];
