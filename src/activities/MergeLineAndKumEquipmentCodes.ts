@@ -25,10 +25,10 @@ export interface MergeLineAndKumEquipmentCodesInputs {
     kumFeatures?: unknown[];
 
     /**
-     * @displayName Inkluder kummer
-     * @description Når usann brukes ikke kum-lista (kun ledning). Standard sann.
+     * @displayName Inkluder kummer ved spyling
+     * @description Sett **sann** når arbeidet gjelder **spyling på valgt ledning**, slik at tilknyttede kummer tas med i utstyrslista. I alle andre tilfeller **usann**. (Eldre workflows uten dette feltet bruker fortsatt `inkluderKummer` / `includeKummer` hvis satt.)
      */
-    inkluderKummer?: boolean;
+    spylingInkluderKummer?: boolean;
 
     /**
      * @displayName Fjern duplikater
@@ -41,6 +41,8 @@ type LegacyMergeInputs = {
     lineEquipmentCodes?: string | string[];
     /** v1.1.0 property name */
     manholeFeatures?: unknown[];
+    /** v1.2.0 */
+    inkluderKummer?: boolean;
     /** Eldre stavemåte */
     includeKummer?: boolean;
 };
@@ -158,8 +160,22 @@ function codesFromFeatureList(
 }
 
 /**
+ * Kum-delen aktiveres når det nye spyling-flagget er eksplisitt sann, eller (bakoverkompatibelt)
+ * når verken spyling-flagget er satt og eldre «inkluder»-flagg ikke er usann.
+ */
+function shouldIncludeKummer(raw: MergeLineAndKumEquipmentCodesInputs & LegacyMergeInputs): boolean {
+    if (raw.spylingInkluderKummer === true) {
+        return true;
+    }
+    if (raw.spylingInkluderKummer === false) {
+        return false;
+    }
+    return raw.inkluderKummer !== false && raw.includeKummer !== false;
+}
+
+/**
  * @displayName Slå sammen ledning og kum utstyrskoder
- * @description Bygger én utstyrskodeliste for DV/SOAP. Faste attributter: EXTERNREF (eller varianter), ellers FCODE+LSID / FCODE+PSID. Pakke v1.2.0.
+ * @description Bygger én utstyrskodeliste for DV/SOAP. Faste attributter: EXTERNREF (eller varianter), ellers FCODE+LSID / FCODE+PSID. Kum-lista brukes når **Inkluder kummer ved spyling** er sann (eller eldre flagg). Pakke v1.3.0.
  * @category Oslo VA
  */
 export class MergeLineAndKumEquipmentCodes implements IActivityHandler {
@@ -179,8 +195,7 @@ export class MergeLineAndKumEquipmentCodes implements IActivityHandler {
         }
 
         const kumList = raw.kumFeatures ?? raw.manholeFeatures ?? [];
-        const inkluderKummer =
-            raw.inkluderKummer !== false && raw.includeKummer !== false;
+        const inkluderKummer = shouldIncludeKummer(raw);
 
         let kumPart: string[] = [];
         if (inkluderKummer && kumList.length > 0) {

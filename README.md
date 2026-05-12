@@ -2,7 +2,7 @@
 
 VertiGIS Studio Workflow activity pack: merge **ledning** equipment codes with **kum** (manhole) codes for DV/SOAP-style `<Equipment>` payloads. This centralizes the pattern that was spread across Evaluate steps (`sid_array` + `psid_fcode_array`) in Oslo VA workflows.
 
-## Activity: **Slå sammen ledning og kum utstyrskoder** (pakke **v1.2.0**)
+## Activity: **Slå sammen ledning og kum utstyrskoder** (pakke **v1.3.0**)
 
 Verktøynavn og feltetiketter i Designer er **norske**; egenskapsnavn i workflow-JSON (`lineFeatures`, `kumFeatures`, …) er bevisst enkle.
 
@@ -11,14 +11,15 @@ Verktøynavn og feltetiketter i Designer er **norske**; egenskapsnavn i workflow
 - **Inputs**  
   - **`lineFeatures`** — *Ledningsfeatures*  
   - **`kumFeatures`** — *Kum-features* (erstatter `manholeFeatures` fra v1.1.0)  
-  - **`inkluderKummer`** — *Inkluder kummer* (standard sann; usann = ignorer kum-lista). Eldre workflows med `includeKummer` støttes fortsatt.  
+  - **`spylingInkluderKummer`** — *Inkluder kummer ved spyling*: sett **sann** bare når flyten gjelder **spyling på valgt ledning** (da skal tilknyttede kummer med i utstyrslista). **Usann** i alle andre grener.  
   - **`deduplicate`** — *Fjern duplikater* (standard sann)
+
+- **Bakoverkompatibilitet**  
+  - `spylingInkluderKummer` **utelatt**: brukes `inkluderKummer` / `includeKummer` som i v1.2 (standard: med kummer med mindre eksplisitt usann).  
+  - `lineEquipmentCodes`, `manholeFeatures` (v1.1) fungerer fortsatt. Nye workflows bør bare bruke **`spylingInkluderKummer`** for kum-valg.
 
 - **Merk**  
   «Catchments» er ikke det samme som kum; det brukes ikke her.
-
-- **Backward compatibility**  
-  `lineEquipmentCodes`, `manholeFeatures` (v1.1), `includeKummer` / `inkluderKummer` leses fortsatt der det finnes i gamle workflows.
 
 - **Outputs**  
   - `equipmentCodes` — `string[]`  
