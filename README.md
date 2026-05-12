@@ -14,7 +14,7 @@ VertiGIS Studio Workflow activity pack: merge **ledning** equipment codes with *
   - `equipmentCodes` — `string[]`
   - `equipmentCodesCsv` — Same list joined with `,` for Evaluate/WebRequest.
 
-## Build
+## Build (lokalt)
 
 ```bash
 npm install
@@ -23,22 +23,34 @@ npm run build
 
 Output: `build/main.js` and `build/activitypack.json`.
 
-## Host (HTTPS + CORS)
+## GitHub Pages (automatisk)
 
-Serve the `build` folder from a host that:
+Ved hver push til **`main`** bygger [GitHub Actions](.github/workflows/deploy-pages.yml) pakka og publiserer **`build/`** til **GitHub Pages**.
 
-- Uses a valid HTTPS certificate.
-- Allows CORS from your Workflow Designer origin (e.g. `https://apps.vertigisstudio.com` or your Portal/Web app host).
+### Engangsoppsett i GitHub-repoet
 
-Examples: static site on Azure Blob/IIS, AWS S3 + CloudFront, nginx, or **GitHub Pages** (upload `build` contents or use Actions to publish artifacts).
+1. Gå til **Settings** → **Pages** → **Build and deployment**.
+2. Under **Source**, velg **GitHub Actions** (ikke «Deploy from a branch»).
+3. Første gang workflow kjører kan GitHub be om å **godkjenne** «github-pages»-miljøet (sjekk **Actions**-fanen hvis deploy henger).
 
-## Register in ArcGIS Portal
+Etter et vellykket kjørsel ligger manifestet her (bytt eier/repo om du har forket):
 
-1. **Add Item** → **An application**.
-2. **URL**: `https://your-host/.../activitypack.json` (must end with `activitypack.json`).
-3. Ensure the item has the tag **`geocortex-workflow-activity-pack`** (required).
+**`https://paalped.github.io/vertigis-workflow-oslo-equipment/activitypack.json`**
 
-Share the item with workflow authors via group/org as needed.
+`main.js` lastes fra samme rot (relativt til manifestet).
+
+### Registrer i ArcGIS (VertiGIS Workflow)
+
+1. I **ArcGIS Online** eller **Portal**: **Legg til element** → **Et program**.
+2. **URL:** lim inn Pages-URL over (må slutte på **`activitypack.json`**).
+3. Legg til tag / nøkkelordet **`geocortex-workflow-activity-pack`** (påkrevd av VertiGIS).
+4. Del elementet med gruppe/org slik at **workflow-forfattere** ser aktivitetspakka i Designer.
+
+VertiGIS krever **HTTPS**. GitHub Pages oppfyller det. Om CORS mot deres miljø gir problemer, se [VertiGIS deployment](https://developers.vertigisstudio.com/docs/workflow/sdk-web-overview/#deployment).
+
+## Annen hosting (HTTPS + CORS)
+
+Du kan også legge ut `build/` på egen statisk hosting (Azure, S3+CloudFront, IIS, nginx) med gyldig sertifikat og CORS mot Workflow Designer-opprinnelsen.
 
 ## Development
 
@@ -46,11 +58,11 @@ Share the item with workflow authors via group/org as needed.
 npm start
 ```
 
-Dev manifest: `https://localhost:5000/activitypack.json` (register the same way; localhost only works on the same machine as the browser).
+Dev manifest: `https://localhost:5000/activitypack.json` (bare på samme maskin som nettleseren).
 
 ## Requirements
 
-- VertiGIS Studio Workflow **5.31+** (see [SDK overview](https://developers.vertigisstudio.com/docs/workflow/sdk-web-overview/)).
+- VertiGIS Studio Workflow **5.31+** (se [SDK overview](https://developers.vertigisstudio.com/docs/workflow/sdk-web-overview/)).
 
 ## License
 
