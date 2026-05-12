@@ -1,7 +1,7 @@
 {
     "name": "vertigis-workflow-oslo-equipment",
     "private": true,
-    "version": "1.4.0",
+    "version": "2.0.0",
     "description": "Custom VertiGIS Studio Workflow activities for Oslo VA equipment-code merging (ledning + kum)",
     "license": "MIT",
     "author": "",
