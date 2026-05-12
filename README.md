@@ -41,12 +41,49 @@ Etter et vellykket kjørsel ligger manifestet her (bytt eier/repo om du har fork
 
 ### Registrer i ArcGIS (VertiGIS Workflow)
 
-1. I **ArcGIS Online** eller **Portal**: **Legg til element** → **Et program**.
-2. **URL:** lim inn Pages-URL over (må slutte på **`activitypack.json`**).
-3. Legg til tag / nøkkelordet **`geocortex-workflow-activity-pack`** (påkrevd av VertiGIS).
-4. Del elementet med gruppe/org slik at **workflow-forfattere** ser aktivitetspakka i Designer.
+VertiGIS oppdager aktivitetspakka som et **Portal-element** som peker på manifestet (`activitypack.json`). Du skal **ikke** gå via OAuth-/utviklerflyten for denne typen innhold.
 
-VertiGIS krever **HTTPS**. GitHub Pages oppfyller det. Om CORS mot deres miljø gir problemer, se [VertiGIS deployment](https://developers.vertigisstudio.com/docs/workflow/sdk-web-overview/#deployment).
+**Manifest-URL (produksjon):**  
+`https://paalped.github.io/vertigis-workflow-oslo-equipment/activitypack.json`
+
+#### 1. Start i Portal / ArcGIS Online
+
+1. Gå til **Mitt innhold** / **My Content**.
+2. **Legg til** / **Add** → **Legg til element** / **New item** (ordlyden varierer litt med språk og versjon).
+3. Velg kategorien **Applikasjon** / **Application** (ikke «kart», «fil» eller «geoobjektlag»).
+
+#### 2. Velg riktig *under*type av applikasjon
+
+Veiviseren for **applikasjon** har flere spor. For en VertiGIS-aktivitetspakke gjelder:
+
+| Velg **ikke** dette | Hvorfor |
+|---------------------|--------|
+| **Utviklerlegitimasjon** / **Developer credentials** (OAuth, API-nøkkel, registrering av klient-app) | Det er for apper som skal logge brukere inn i plattformen og utstede egne tokens. Aktivitetspakka er bare en **HTTPS-referanse** til en JSON-fil. |
+
+Du skal i stedet bruke flyten som tilsvarer Esri-hjelpen **«Add an app from a URL»** / legge til app **fra URL** (referanse, uten å registrere OAuth for selve lenken).
+
+Når du blir bedt om **apptype** / **type app**, velg ett av disse (begge er akseptabel praksis for en nett-basert VertiGIS-ressurs):
+
+1. **Webbasert kartlegging** / **Web mapping** — anbefalt førstevalg (ressursen konsumeres av web-funksjoner / Designer).  
+2. **Annen applikasjon** / **Other application** — alternativ dersom dere foretrekker «generisk» URL-element (samme mønster som «code samples» i Esri-dokumentasjonen).
+
+**Ikke** velg **Skrivebord** eller **Mobil** med mindre organisasjonen deres krever det av andre grunner; det matcher ikke dette bruksområdet.
+
+#### 3. Fyll inn detaljer
+
+1. **URL:** lim inn manifestet — hele adressen må slutte på **`activitypack.json`**.  
+2. **Tittel** og evt. **mapper** som for andre elementer.  
+3. **Tag / nøkkelord (obligatorisk for VertiGIS):** legg inn nøyaktig **`geocortex-workflow-activity-pack`**. Uten denne taggen **registreres ikke** pakka i Workflow Designer.  
+4. Lagre (f.eks. **Legg til element** / **Add item**).
+
+#### 4. Deling
+
+Del elementet med **gruppe** eller **organisasjon** slik at alle som skal bygge workflows i **VertiGIS Studio Workflow Designer** har tilgang. Sluttbrukere av kart-app trenger normalt **ikke** tilgang til dette elementet — det styrer bare hvilke egendefinerte aktiviteter som vises i Designer.
+
+**Referanse (Esri):** [Add an app from a URL](https://doc.arcgis.com/en/arcgis-online/manage-data/add-app-url.htm) (engelsk, samme mønster i Portal for enkel kopling fra URL).  
+**Referanse (VertiGIS):** [Register the activity pack](https://developers.vertigisstudio.com/docs/workflow/sdk-web-overview/#register-the-activity-pack).
+
+VertiGIS krever **HTTPS**. GitHub Pages oppfyller det. Ved CORS-problemer mot deres VertiGIS-/Portal-domene, se [VertiGIS deployment](https://developers.vertigisstudio.com/docs/workflow/sdk-web-overview/#deployment).
 
 ## Annen hosting (HTTPS + CORS)
 
