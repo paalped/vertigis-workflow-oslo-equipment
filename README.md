@@ -62,12 +62,20 @@ Veiviseren for **applikasjon** har flere spor. For en VertiGIS-aktivitetspakke g
 
 Du skal i stedet bruke flyten som tilsvarer Esri-hjelpen **«Add an app from a URL»** / legge til app **fra URL** (referanse, uten å registrere OAuth for selve lenken).
 
-Når du blir bedt om **apptype** / **type app**, velg ett av disse (begge er akseptabel praksis for en nett-basert VertiGIS-ressurs):
+##### Applikasjonstype i ArcGIS Enterprise (eksempel Oslo `kartportal`)
 
-1. **Webbasert kartlegging** / **Web mapping** — anbefalt førstevalg (ressursen konsumeres av web-funksjoner / Designer).  
-2. **Annen applikasjon** / **Other application** — alternativ dersom dere foretrekker «generisk» URL-element (samme mønster som «code samples» i Esri-dokumentasjonen).
+I «Nytt element» → **Applikasjon** visas en liste som likner på denne:
 
-**Ikke** velg **Skrivebord** eller **Mobil** med mindre organisasjonen deres krever det av andre grunner; det matcher ikke dette bruksområdet.
+| Valg | Bruk for VertiGIS-aktivitetspakke? |
+|------|-------------------------------------|
+| **Webkart** | Vanligvis **nei** — typisk for apper koblet til et «vanlig» webkart-element, ikke for `activitypack.json`. |
+| **Skrivebord** | **Nei**. |
+| **Mobil** | **Nei**. |
+| **Applikasjonsutvidelse (AppBuilder)** | **Nei** — det er for **ArcGIS Web AppBuilder**-utvidelser og deres manifest-skjema. VertiGIS Workflow sin `activitypack.json` er **ikke** en AppBuilder-manifest. Velg derfor **ikke** denne selv om feltet heter «Manifest-URL». |
+| **Experience Builder-miniprogram** | **Nei** — gjelder Experience Builder. |
+| **Annen applikasjon** | **Ja — dette er valget vi mener.** Her registrerer dere en generisk app som peker til en URL (i praksis samme mønster som Esri omtaler som *Other application*). Lim inn URL til `activitypack.json` i det URL-/applikasjonsfeltet veiviseren ber om. |
+
+Om **Annen applikasjon** av en eller annen grunn ikke finnes eller ikke lar dere fullføre: avklar med GIS-/Portal-administrator i kommunen før dere bruker en annen applikasjonstype (da kan det være tilpasset skjema i deres miljø).
 
 #### 3. Fyll inn detaljer
 
