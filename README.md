@@ -2,17 +2,27 @@
 
 VertiGIS Studio Workflow activity pack: merge **ledning** equipment codes with **kum** (manhole) codes for DV/SOAP-style `<Equipment>` payloads. This centralizes the pattern that was spread across Evaluate steps (`sid_array` + `psid_fcode_array`) in Oslo VA workflows.
 
-## Activity: **Merge Line and Kum Equipment Codes**
+## Activity: **Merge Line and Manhole Equipment Codes**
 
-- **Inputs**
-  - `lineEquipmentCodes` — Tokens you already built for lines (comma-separated string or `string[]`).
-  - `kumFeatures` — Query results / graphics: `{ attributes }` or plain attribute objects.
-  - `includeKummer` — Default `true`. Set `false` to return only line codes.
-  - `externRefFieldNames`, `fcodeFieldName`, `psidFieldName`, `fcodePsidSeparator` — Optional; defaults match common EXTERNREF / FCODE / PSID usage.
-  - `deduplicate` — Default `true` (first occurrence wins).
-- **Outputs**
-  - `equipmentCodes` — `string[]`
-  - `equipmentCodesCsv` — Same list joined with `,` for Evaluate/WebRequest.
+Toolbox name is English-only for clarity. All inputs are optional unless you need that side of the merge.
+
+- **Inputs (feature-first)**  
+  - **`lineFeatures`** — Line / pipe features (graphics or plain `attributes` objects). One code per feature: **EXTERNREF**, else **FCODE + LSID** (field names overridable).  
+  - **`manholeFeatures`** — Manhole (*kum*) point features. One code per feature: **EXTERNREF**, else **FCODE + PSID**. Omit or **`[]`** if you do not want manholes in the list (replaces the old “include” flag).  
+  - **`externRefFieldNames`** — Optional ordered list of EXTERNREF attribute names (case-insensitive).  
+  - **`fcodeFieldName`** — Default `FCODE`.  
+  - **`lineSegmentIdFieldName`** — Default `LSID` (used with FCODE on **line** features).  
+  - **`lineFcodeSegmentSeparator`** — Between FCODE and line id; default empty string.  
+  - **`manholePointIdFieldName`** — Default `PSID` (used with FCODE on **manhole** features).  
+  - **`manholeFcodePointSeparator`** — Between FCODE and PSID; default empty string.  
+  - **`deduplicate`** — Default `true` (first occurrence wins).
+
+- **Backward compatibility (runtime only)**  
+  Older workflows may still pass `lineEquipmentCodes`, `kumFeatures`, `includeKummer`, `psidFieldName`, or `fcodePsidSeparator`; these are still read in code but are no longer listed in the Designer.
+
+- **Outputs**  
+  - `equipmentCodes` — `string[]`  
+  - `equipmentCodesCsv` — Same list joined with `,` for SOAP / WebRequest.
 
 ## Build (lokalt)
 
