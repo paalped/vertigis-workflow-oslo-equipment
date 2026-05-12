@@ -13,27 +13,35 @@ const FCODE_ID_SEPARATOR = "";
 
 export interface MergeLineAndKumEquipmentCodesInputs {
     /**
-     * @displayName Line features
-     * @description Pipe / line features (graphics). One equipment code per feature: EXTERNREF, or FCODE + LSID (fixed field names).
+     * @displayName Ledningsfeatures
+     * @description Rør-/ledningsfeatures. Én utstyrskode per feature: EXTERNREF, eller FCODE+LSID (faste feltnavn).
      */
     lineFeatures?: unknown[];
 
     /**
-     * @displayName Manhole features
-     * @description Manhole (kum) point features. One code per feature: EXTERNREF, or FCODE + PSID. Omit or pass an empty list to exclude manholes.
+     * @displayName Kum-features
+     * @description Kum (manhole)-punkter. Én kode per feature: EXTERNREF, eller FCODE+PSID. Tom liste = ingen kummer.
      */
-    manholeFeatures?: unknown[];
+    kumFeatures?: unknown[];
 
     /**
-     * @displayName Deduplicate
-     * @description Remove duplicate codes while preserving first-seen order.
+     * @displayName Inkluder kummer
+     * @description Når usann brukes ikke kum-lista (kun ledning). Standard sann.
+     */
+    inkluderKummer?: boolean;
+
+    /**
+     * @displayName Fjern duplikater
+     * @description Fjerner like koder; første rekkefølge beholdes.
      */
     deduplicate?: boolean;
 }
 
 type LegacyMergeInputs = {
     lineEquipmentCodes?: string | string[];
-    kumFeatures?: unknown[];
+    /** v1.1.0 property name */
+    manholeFeatures?: unknown[];
+    /** Eldre stavemåte */
     includeKummer?: boolean;
 };
 
@@ -150,8 +158,8 @@ function codesFromFeatureList(
 }
 
 /**
- * @displayName Merge Line and Manhole Equipment Codes
- * @description Builds one equipment code list for DV SOAP-style payloads from line and manhole features. Uses fixed Oslo VA attributes: EXTERNREF (or ExternRef/externref), else FCODE+LSID on lines and FCODE+PSID on manholes; no separator between FCODE and id. Pack version 1.1.0.
+ * @displayName Slå sammen ledning og kum utstyrskoder
+ * @description Bygger én utstyrskodeliste for DV/SOAP. Faste attributter: EXTERNREF (eller varianter), ellers FCODE+LSID / FCODE+PSID. Pakke v1.2.0.
  * @category Oslo VA
  */
 export class MergeLineAndKumEquipmentCodes implements IActivityHandler {
@@ -159,25 +167,27 @@ export class MergeLineAndKumEquipmentCodes implements IActivityHandler {
         inputs: MergeLineAndKumEquipmentCodesInputs,
         _context: IActivityContext
     ): Promise<MergeLineAndKumEquipmentCodesOutputs> {
-        const legacy = inputs as MergeLineAndKumEquipmentCodesInputs & LegacyMergeInputs;
+        const raw = inputs as MergeLineAndKumEquipmentCodesInputs & LegacyMergeInputs;
 
-        const deduplicate = legacy.deduplicate !== false;
+        const deduplicate = raw.deduplicate !== false;
 
         let linePart: string[] = [];
-        if (legacy.lineFeatures?.length) {
-            linePart = codesFromFeatureList(legacy.lineFeatures, FIELD_LSID);
-        } else if (legacy.lineEquipmentCodes != null) {
-            linePart = normalizeLineCodes(legacy.lineEquipmentCodes);
+        if (raw.lineFeatures?.length) {
+            linePart = codesFromFeatureList(raw.lineFeatures, FIELD_LSID);
+        } else if (raw.lineEquipmentCodes != null) {
+            linePart = normalizeLineCodes(raw.lineEquipmentCodes);
         }
 
-        const manholeList = legacy.manholeFeatures ?? legacy.kumFeatures ?? [];
-        const includeManholes = legacy.includeKummer !== false;
-        let manholePart: string[] = [];
-        if (includeManholes && manholeList.length > 0) {
-            manholePart = codesFromFeatureList(manholeList, FIELD_PSID);
+        const kumList = raw.kumFeatures ?? raw.manholeFeatures ?? [];
+        const inkluderKummer =
+            raw.inkluderKummer !== false && raw.includeKummer !== false;
+
+        let kumPart: string[] = [];
+        if (inkluderKummer && kumList.length > 0) {
+            kumPart = codesFromFeatureList(kumList, FIELD_PSID);
         }
 
-        const merged = [...linePart, ...manholePart];
+        const merged = [...linePart, ...kumPart];
         const equipmentCodes = deduplicate ? uniqueOrdered(merged) : merged;
         return {
             equipmentCodes,

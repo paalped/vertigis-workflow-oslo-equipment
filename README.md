@@ -2,20 +2,23 @@
 
 VertiGIS Studio Workflow activity pack: merge **ledning** equipment codes with **kum** (manhole) codes for DV/SOAP-style `<Equipment>` payloads. This centralizes the pattern that was spread across Evaluate steps (`sid_array` + `psid_fcode_array`) in Oslo VA workflows.
 
-## Activity: **Merge Line and Manhole Equipment Codes** (pakke **v1.1.0**)
+## Activity: **Slå sammen ledning og kum utstyrskoder** (pakke **v1.2.0**)
 
-- **Hardkodede attributtnavn (Oslo VA / DV)** — ikke Workflow-inndata:  
-  - Ekstern referanse: **`EXTERNREF`** (også treff på `ExternRef` / `externref`, case-varianter via attributtnøkler).  
-  - Ellers **`FCODE`** + **`LSID`** på **ledning**, og **`FCODE`** + **`PSID`** på **kum**.  
-  - Ingen skilletegn mellom `FCODE` og id (samme som tidligere standard i pakka).
+Verktøynavn og feltetiketter i Designer er **norske**; egenskapsnavn i workflow-JSON (`lineFeatures`, `kumFeatures`, …) er bevisst enkle.
+
+- **Hardkodede attributter** — som i v1.1.0: **EXTERNREF** (varianter), ellers **FCODE+LSID** på ledning og **FCODE+PSID** på kum, uten skilletegn.
 
 - **Inputs**  
-  - **`lineFeatures`** — Ledningsfeatures; én kode per feature etter regelen over.  
-  - **`manholeFeatures`** — Kum-features; samme EXTERNREF/FCODE+PSID-logikk. Uten liste eller **`[]`** = ingen kummer.  
-  - **`deduplicate`** — Standard `true` (første treff vinner).
+  - **`lineFeatures`** — *Ledningsfeatures*  
+  - **`kumFeatures`** — *Kum-features* (erstatter `manholeFeatures` fra v1.1.0)  
+  - **`inkluderKummer`** — *Inkluder kummer* (standard sann; usann = ignorer kum-lista). Eldre workflows med `includeKummer` støttes fortsatt.  
+  - **`deduplicate`** — *Fjern duplikater* (standard sann)
 
-- **Backward compatibility (runtime)**  
-  Gamle workflows kan fortsatt sende `lineEquipmentCodes`, `kumFeatures`, `includeKummer`. Tidligere inndata for feltnavn (`externRefFieldNames`, `psidFieldName`, osv.) **ignoreres** — attributtene er faste i **v1.1.0**.
+- **Merk**  
+  «Catchments» er ikke det samme som kum; det brukes ikke her.
+
+- **Backward compatibility**  
+  `lineEquipmentCodes`, `manholeFeatures` (v1.1), `includeKummer` / `inkluderKummer` leses fortsatt der det finnes i gamle workflows.
 
 - **Outputs**  
   - `equipmentCodes` — `string[]`  
