@@ -60,31 +60,30 @@ Veiviseren for **applikasjon** har flere spor. For en VertiGIS-aktivitetspakke g
 |---------------------|--------|
 | **Utviklerlegitimasjon** / **Developer credentials** (OAuth, API-nøkkel, registrering av klient-app) | Det er for apper som skal logge brukere inn i plattformen og utstede egne tokens. Aktivitetspakka er bare en **HTTPS-referanse** til en JSON-fil. |
 
-Du skal i stedet bruke flyten som tilsvarer Esri-hjelpen **«Add an app from a URL»** / legge til app **fra URL** (referanse, uten å registrere OAuth for selve lenken).
+Du skal i stedet bruke flyten som tilsvarer Esri-hjelpen **«Add an app from a URL»** / legge til app **fra URL** (referanse til `activitypack.json` på HTTPS).
 
-##### Applikasjonstype i ArcGIS Enterprise (eksempel Oslo `kartportal`)
+##### Applikasjonstype i ArcGIS Enterprise (verifisert: Oslo `kartportal`)
 
-I «Nytt element» → **Applikasjon** visas en liste som likner på denne:
+I «Nytt element» → **Applikasjon** kommer flere undertyper. **I deres miljø** er denne rekkefølgen fungerende og enklest:
 
-| Valg | Bruk for VertiGIS-aktivitetspakke? |
-|------|-------------------------------------|
-| **Webkart** | Vanligvis **nei** — typisk for apper koblet til et «vanlig» webkart-element, ikke for `activitypack.json`. |
-| **Skrivebord** | **Nei**. |
-| **Mobil** | **Nei**. |
-| **Applikasjonsutvidelse (AppBuilder)** | **Nei** — det er for **ArcGIS Web AppBuilder**-utvidelser og deres manifest-skjema. VertiGIS Workflow sin `activitypack.json` er **ikke** en AppBuilder-manifest. Velg derfor **ikke** denne selv om feltet heter «Manifest-URL». |
-| **Experience Builder-miniprogram** | **Nei** — gjelder Experience Builder. |
-| **Annen applikasjon** | **Ja — dette er valget vi mener.** Her registrerer dere en generisk app som peker til en URL (i praksis samme mønster som Esri omtaler som *Other application*). Lim inn URL til `activitypack.json` i det URL-/applikasjonsfeltet veiviseren ber om. |
+1. **Applikasjon** → **Webkart** («Web mapping» i engelsk dokumentasjon).  
+2. Lim inn **URL** til manifestet (hele adressen må slutte på **`activitypack.json`**).  
+3. Legg inn tag / nøkkelord: **`geocortex-workflow-activity-pack`** (obligatorisk for VertiGIS).  
+4. **Lagre** elementet (tittel, mappe osv. som for andre Portal-elementer) og **del** det med alle som bruker Designer.  
+5. **Oppfrisk** nettleseren i **VertiGIS Studio Workflow Designer** (eller logg ut og inn). Da dukker aktivitetene under riktig kategori i verktøykassa.
 
-Om **Annen applikasjon** av en eller annen grunn ikke finnes eller ikke lar dere fullføre: avklar med GIS-/Portal-administrator i kommunen før dere bruker en annen applikasjonstype (da kan det være tilpasset skjema i deres miljø).
+Alternative rader i Portal-menyen:
 
-#### 3. Fyll inn detaljer
+| Valg | Merknad |
+|------|---------|
+| **Skrivebord** / **Mobil** | Ikke relevant her. |
+| **Applikasjonsutvidelse (AppBuilder)** | For AppBuilder-utvidelser — **ikke** VertiGIS sin `activitypack.json`. |
+| **Experience Builder-miniprogram** | Ikke relevant her. |
+| **Annen applikasjon** | Kan i noen Portal-oppsett **tvinge** OAuth-/utvikler­flyt. Velg **Webkart** hvis den oppførselen blir i veien (som i Oslo). |
 
-1. **URL** (kan hete **Applikasjons-URL**, **Manifest-URL** e.l.): lim inn manifestet — hele adressen må slutte på **`activitypack.json`**.  
-2. **Tittel** og evt. **mapper** som for andre elementer.  
-3. **Tag / nøkkelord (obligatorisk for VertiGIS):** legg inn nøyaktig **`geocortex-workflow-activity-pack`**. Uten denne taggen **registreres ikke** pakka i Workflow Designer.  
-4. Lagre (f.eks. **Legg til element** / **Add item**).
+Portal kan uansett vise **OAuth- / omdirigeringsinnstillinger** på elementet (f.eks. `urn:ietf:wg:oauth:2.0:oob`); det hindrer ikke VertiGIS i å hente manifestet over HTTPS.
 
-#### 4. Deling
+#### 3. Deling
 
 Del elementet med **gruppe** eller **organisasjon** slik at alle som skal bygge workflows i **VertiGIS Studio Workflow Designer** har tilgang. Sluttbrukere av kart-app trenger normalt **ikke** tilgang til dette elementet — det styrer bare hvilke egendefinerte aktiviteter som vises i Designer.
 
