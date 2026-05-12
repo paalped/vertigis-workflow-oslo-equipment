@@ -36,10 +36,10 @@ export interface MergeLineAndKumEquipmentCodesInputs {
     spylingInkluderKummer?: boolean;
 
     /**
-     * @displayName Fjern duplikater
-     * @description Fjerner like koder; første rekkefølge beholdes.
+     * @displayName Unike utstyrskoder for Equipment
+     * @description **Sann** (standard): samme utstyrskode bare én gang i lista som sendes til DV/SOAP **Equipment** — hvis flere features ga samme kode, beholdes første rekkefølge. **Usann**: alle koder fra features tas med, også ved duplikater.
      */
-    deduplicate?: boolean;
+    uniqueEquipmentCodes?: boolean;
 }
 
 export interface MergeLineAndKumEquipmentCodesOutputs {
@@ -164,7 +164,7 @@ function resolveIncludedToEncode(
 
 /**
  * @displayName Slå sammen ledning og kum utstyrskoder
- * @description DV/SOAP utstyrskoder fra **hovedfeatures** + valgfrie **tilleggsfeatures**. **ledning** → LSID, **kum** / **brann** → PSID. Tillegg enkodes alltid med PSID-regel. Pakke v2.0.0.
+ * @description DV/SOAP utstyrskoder fra **hovedfeatures** + valgfrie **tilleggsfeatures**. **ledning** → LSID, **kum** / **brann** → PSID. Tillegg enkodes alltid med PSID-regel. Pakke v2.1.0.
  * @category Oslo VA
  */
 export class MergeLineAndKumEquipmentCodes implements IActivityHandler {
@@ -172,7 +172,7 @@ export class MergeLineAndKumEquipmentCodes implements IActivityHandler {
         inputs: MergeLineAndKumEquipmentCodesInputs,
         _context: IActivityContext
     ): Promise<MergeLineAndKumEquipmentCodesOutputs> {
-        const deduplicate = inputs.deduplicate !== false;
+        const collapseDuplicates = inputs.uniqueEquipmentCodes !== false;
         const main = inputs.mainFeatures;
         if (!Array.isArray(main) || main.length === 0) {
             return { equipmentCodes: [], equipmentCodesCsv: "" };
@@ -201,7 +201,7 @@ export class MergeLineAndKumEquipmentCodes implements IActivityHandler {
         }
 
         const merged = [...linePart, ...pointPart];
-        const equipmentCodes = deduplicate ? uniqueOrdered(merged) : merged;
+        const equipmentCodes = collapseDuplicates ? uniqueOrdered(merged) : merged;
         return {
             equipmentCodes,
             equipmentCodesCsv: equipmentCodes.join(","),

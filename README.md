@@ -2,7 +2,7 @@
 
 VertiGIS Studio Workflow activity pack: **hovedfeatures** + **tilleggsfeatures** til én DV/SOAP **`<Equipment>`**-liste (Oslo VA), med fast EXTERNREF / FCODE+LSID eller FCODE+PSID.
 
-## Activity: **Slå sammen ledning og kum utstyrskoder** (pakke **v2.0.0**)
+## Activity: **Slå sammen ledning og kum utstyrskoder** (pakke **v2.1.0**)
 
 Ingen bakoverkompatibilitet med eldre feltnavn — bruk bare tabellen under.
 
@@ -18,7 +18,7 @@ Ingen bakoverkompatibilitet med eldre feltnavn — bruk bare tabellen under.
 | **`includedFeatures`** | *Tilleggsfeatures* — valgfritt; ved ledning kun hvis spyling er sann |
 | **`mainFeatureType`** | *Hovedtype*: **`ledning`**, **`kum`**, **`brann`** (alias: `line`, `manhole`, `brannkum`, …) |
 | **`spylingInkluderKummer`** | *Inkluder kummer ved spyling* — bare relevant når typen er **ledning**; må være **sann** for at tillegg skal brukes |
-| **`deduplicate`** | *Fjern duplikater* (standard sann) |
+| **`uniqueEquipmentCodes`** | *Unike utstyrskoder for Equipment* — **sann** (standard): én oppføring per kode i Equipment-lista; **usann**: behold alle (også duplikater) |
 
 Mangler **hovedtype**, behandles det som **ledning**.
 
