@@ -6,7 +6,7 @@ const FIELD_LSID = "LSID";
 const FIELD_PSID = "PSID";
 const FCODE_ID_SEPARATOR = "";
 
-export interface MergeLineAndKumEquipmentCodesInputs {
+export interface DVFeatureEvaluatorInputs {
     /**
      * @displayName Hovedfeatures
      * @description Features fra utvalg / query. Du kan sende f.eks. `$selectedFeatureSet`, `$selectedFeatureSet.featureSet` eller `$selectedFeatureSet.featureSet.features` — aktiviteten finner `attributes`, eller `features`, eller `featureSet` og pakker ut til en liste.
@@ -38,7 +38,7 @@ export interface MergeLineAndKumEquipmentCodesInputs {
     uniqueEquipmentCodes?: boolean;
 }
 
-export interface MergeLineAndKumEquipmentCodesOutputs {
+export interface DVFeatureEvaluatorOutputs {
     /**
      * @description Ordered equipment codes suitable for SOAP Equipment lists.
      */
@@ -175,15 +175,15 @@ function resolveIncludedToEncode(
 }
 
 /**
- * @displayName Slå sammen ledning og kum utstyrskoder
- * @description Utstyrskoder til DV/SOAP **Equipment** fra features (**EXTERNREF**, ellers **FCODE**+**LSID** på ledning og **FCODE**+**PSID** på kum/brann). Tilleggsfeatures enkodes med **PSID**. Pakke v2.2.0.
+ * @displayName DVFeatureEvaluator
+ * @description Utstyrskoder til DV/SOAP **Equipment** fra features (**EXTERNREF**, ellers **FCODE**+**LSID** på ledning og **FCODE**+**PSID** på kum/brann). Tilleggsfeatures enkodes med **PSID**. Pakke v3.0.0.
  * @category Oslo VA
  */
-export class MergeLineAndKumEquipmentCodes implements IActivityHandler {
+export class DVFeatureEvaluator implements IActivityHandler {
     async execute(
-        inputs: MergeLineAndKumEquipmentCodesInputs,
+        inputs: DVFeatureEvaluatorInputs,
         _context: IActivityContext
-    ): Promise<MergeLineAndKumEquipmentCodesOutputs> {
+    ): Promise<DVFeatureEvaluatorOutputs> {
         const collapseDuplicates = inputs.uniqueEquipmentCodes !== false;
         const mainList = unwrapToFeatureList(inputs.mainFeatures);
         if (mainList.length === 0) {

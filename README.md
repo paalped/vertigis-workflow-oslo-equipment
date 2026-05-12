@@ -2,7 +2,9 @@
 
 VertiGIS Studio Workflow activity pack: **hovedfeatures** + **tilleggsfeatures** til én DV/SOAP **`<Equipment>`**-liste (Oslo VA), med fast EXTERNREF / FCODE+LSID eller FCODE+PSID.
 
-## Activity: **Slå sammen ledning og kum utstyrskoder** (pakke **v2.2.0**)
+## Activity: **DVFeatureEvaluator** (pakke **v3.0.0**)
+
+**Breaking:** Tidligere aktivitetsklasse **`MergeLineAndKumEquipmentCodes`** er erstattet. Eksisterende workflows må bytte til **DVFeatureEvaluator** (nytt steg i Designer etter oppfrisking av aktivitetspakken).
 
 ### Hardkodede attributter (kun store bokstaver)
 
