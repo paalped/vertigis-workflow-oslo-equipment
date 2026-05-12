@@ -13,20 +13,38 @@ const FCODE_ID_SEPARATOR = "";
 
 export interface MergeLineAndKumEquipmentCodesInputs {
     /**
-     * @displayName Ledningsfeatures
-     * @description Rør-/ledningsfeatures. Én utstyrskode per feature: EXTERNREF, eller FCODE+LSID (faste feltnavn).
+     * @displayName Valgte features (hovedutvalg)
+     * @description Samme feature-liste uansett om bruker har valgt **ledning** eller **kum** — typisk `selectedFeatureSet.featureSet.features` (eller tilsvarende) fra kartet.
+     */
+    selectedFeatures?: unknown[];
+
+    /**
+     * @displayName Hovedutvalg: ledning eller kum
+     * @description Bruk strengen **ledning** (eller `line`) når hovedutvalget er rør/ledning (FCODE+LSID). Bruk **kum** (eller `manhole`) når hovedutvalget er kum (FCODE+PSID). Styrer hvordan `selectedFeatures` oversettes til utstyrskoder.
+     */
+    selectedFeatureKind?: string;
+
+    /**
+     * @displayName Tilknyttede kum-features (spyling)
+     * @description Ekstra kumanlegg fra spørring el.l., typisk når hovedutvalget er **ledning** og **Inkluder kummer ved spyling** er sann. Valgfritt.
+     */
+    linkedKumFeatures?: unknown[];
+
+    /**
+     * @displayName Ledningsfeatures (eldre mønster)
+     * @description Brukes bare om **Valgte features (hovedutvalg)** ikke er satt. Se `selectedFeatures`.
      */
     lineFeatures?: unknown[];
 
     /**
-     * @displayName Kum-features
-     * @description Kum (manhole)-punkter. Én kode per feature: EXTERNREF, eller FCODE+PSID. Tom liste = ingen kummer.
+     * @displayName Kum-features (eldre mønster)
+     * @description Brukes bare om **Valgte features (hovedutvalg)** ikke er satt. Se `selectedFeatures` + `linkedKumFeatures`.
      */
     kumFeatures?: unknown[];
 
     /**
      * @displayName Inkluder kummer ved spyling
-     * @description Sett **sann** når arbeidet gjelder **spyling på valgt ledning**, slik at tilknyttede kummer tas med i utstyrslista. I alle andre tilfeller **usann**. (Eldre workflows uten dette feltet bruker fortsatt `inkluderKummer` / `includeKummer` hvis satt.)
+     * @description Sett **sann** når arbeidet gjelder **spyling på valgt ledning**, slik at tilknyttede kummer tas med — da brukes **Tilknyttede kum-features** om det er oppgitt. I alle andre tilfeller **usann**. (Eldre workflows uten `spylingInkluderKummer` bruker `inkluderKummer` / `includeKummer`.)
      */
     spylingInkluderKummer?: boolean;
 
@@ -39,11 +57,8 @@ export interface MergeLineAndKumEquipmentCodesInputs {
 
 type LegacyMergeInputs = {
     lineEquipmentCodes?: string | string[];
-    /** v1.1.0 property name */
     manholeFeatures?: unknown[];
-    /** v1.2.0 */
     inkluderKummer?: boolean;
-    /** Eldre stavemåte */
     includeKummer?: boolean;
 };
 
@@ -159,10 +174,21 @@ function codesFromFeatureList(
     return out;
 }
 
-/**
- * Kum-delen aktiveres når det nye spyling-flagget er eksplisitt sann, eller (bakoverkompatibelt)
- * når verken spyling-flagget er satt og eldre «inkluder»-flagg ikke er usann.
- */
+/** Map UI / workflow literals to internal kind. */
+function normalizeMainKind(kind: unknown): "ledning" | "kum" | null {
+    if (kind == null) {
+        return null;
+    }
+    const s = String(kind).trim().toLowerCase();
+    if (s === "ledning" || s === "line" || s === "pipe" || s === "rør") {
+        return "ledning";
+    }
+    if (s === "kum" || s === "manhole" || s === "manholes") {
+        return "kum";
+    }
+    return null;
+}
+
 function shouldIncludeKummer(raw: MergeLineAndKumEquipmentCodesInputs & LegacyMergeInputs): boolean {
     if (raw.spylingInkluderKummer === true) {
         return true;
@@ -175,7 +201,7 @@ function shouldIncludeKummer(raw: MergeLineAndKumEquipmentCodesInputs & LegacyMe
 
 /**
  * @displayName Slå sammen ledning og kum utstyrskoder
- * @description Bygger én utstyrskodeliste for DV/SOAP. Faste attributter: EXTERNREF (eller varianter), ellers FCODE+LSID / FCODE+PSID. Kum-lista brukes når **Inkluder kummer ved spyling** er sann (eller eldre flagg). Pakke v1.3.0.
+ * @description Bygger én utstyrskodeliste for DV/SOAP. Støtter **ett hovedutvalg** (`selectedFeatures` + ledning/kum-valg) som i addWorkOrders-mønsteret, eller eldre `lineFeatures`/`kumFeatures`. Pakke v1.4.0.
  * @category Oslo VA
  */
 export class MergeLineAndKumEquipmentCodes implements IActivityHandler {
@@ -186,20 +212,39 @@ export class MergeLineAndKumEquipmentCodes implements IActivityHandler {
         const raw = inputs as MergeLineAndKumEquipmentCodesInputs & LegacyMergeInputs;
 
         const deduplicate = raw.deduplicate !== false;
-
         let linePart: string[] = [];
-        if (raw.lineFeatures?.length) {
-            linePart = codesFromFeatureList(raw.lineFeatures, FIELD_LSID);
-        } else if (raw.lineEquipmentCodes != null) {
-            linePart = normalizeLineCodes(raw.lineEquipmentCodes);
-        }
-
-        const kumList = raw.kumFeatures ?? raw.manholeFeatures ?? [];
-        const inkluderKummer = shouldIncludeKummer(raw);
-
         let kumPart: string[] = [];
-        if (inkluderKummer && kumList.length > 0) {
-            kumPart = codesFromFeatureList(kumList, FIELD_PSID);
+
+        const selected = raw.selectedFeatures;
+        const hasSelectedMain = Array.isArray(selected) && selected.length > 0;
+
+        if (hasSelectedMain) {
+            const kind = normalizeMainKind(raw.selectedFeatureKind) ?? "ledning";
+            if (kind === "ledning") {
+                linePart = codesFromFeatureList(selected, FIELD_LSID);
+                if (shouldIncludeKummer(raw)) {
+                    const linked = raw.linkedKumFeatures ?? [];
+                    const legacyKum = raw.kumFeatures ?? raw.manholeFeatures ?? [];
+                    const extraKum = linked.length > 0 ? linked : legacyKum;
+                    if (extraKum.length > 0) {
+                        kumPart = codesFromFeatureList(extraKum, FIELD_PSID);
+                    }
+                }
+            } else {
+                kumPart = codesFromFeatureList(selected, FIELD_PSID);
+            }
+        } else {
+            if (raw.lineFeatures?.length) {
+                linePart = codesFromFeatureList(raw.lineFeatures, FIELD_LSID);
+            } else if (raw.lineEquipmentCodes != null) {
+                linePart = normalizeLineCodes(raw.lineEquipmentCodes);
+            }
+
+            const kumList = raw.kumFeatures ?? raw.manholeFeatures ?? [];
+            const inkluderKummer = shouldIncludeKummer(raw);
+            if (inkluderKummer && kumList.length > 0) {
+                kumPart = codesFromFeatureList(kumList, FIELD_PSID);
+            }
         }
 
         const merged = [...linePart, ...kumPart];

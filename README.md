@@ -2,28 +2,37 @@
 
 VertiGIS Studio Workflow activity pack: merge **ledning** equipment codes with **kum** (manhole) codes for DV/SOAP-style `<Equipment>` payloads. This centralizes the pattern that was spread across Evaluate steps (`sid_array` + `psid_fcode_array`) in Oslo VA workflows.
 
-## Activity: **Slå sammen ledning og kum utstyrskoder** (pakke **v1.3.0**)
+## Activity: **Slå sammen ledning og kum utstyrskoder** (pakke **v1.4.0**)
 
-Verktøynavn og feltetiketter i Designer er **norske**; egenskapsnavn i workflow-JSON (`lineFeatures`, `kumFeatures`, …) er bevisst enkle.
+Verktøynavn og feltetiketter i Designer er **norske** der det gir mening; tekniske nøkler (`selectedFeatures`, …) er stabile for JSON.
 
-- **Hardkodede attributter** — som i v1.1.0: **EXTERNREF** (varianter), ellers **FCODE+LSID** på ledning og **FCODE+PSID** på kum, uten skilletegn.
+- **Hardkodede attributter** — **EXTERNREF** (varianter), ellers **FCODE+LSID** på ledning og **FCODE+PSID** på kum, uten skilletegn.
 
-- **Inputs**  
-  - **`lineFeatures`** — *Ledningsfeatures*  
-  - **`kumFeatures`** — *Kum-features* (erstatter `manholeFeatures` fra v1.1.0)  
-  - **`spylingInkluderKummer`** — *Inkluder kummer ved spyling*: sett **sann** bare når flyten gjelder **spyling på valgt ledning** (da skal tilknyttede kummer med i utstyrslista). **Usann** i alle andre grener.  
-  - **`deduplicate`** — *Fjern duplikater* (standard sann)
+### Anbefalt: ett hovedutvalg (addWorkOrders-mønster)
 
-- **Bakoverkompatibilitet**  
-  - `spylingInkluderKummer` **utelatt**: brukes `inkluderKummer` / `includeKummer` som i v1.2 (standard: med kummer med mindre eksplisitt usann).  
-  - `lineEquipmentCodes`, `manholeFeatures` (v1.1) fungerer fortsatt. Nye workflows bør bare bruke **`spylingInkluderKummer`** for kum-valg.
+Bind samme feature-liste uansett om brukeren valgte **ledning** eller **kum** — typisk `selectedFeatureSet.featureSet.features` (tilpass til deres uttrykk).
 
-- **Merk**  
-  «Catchments» er ikke det samme som kum; det brukes ikke her.
+| Nøkkel | Designer / bruksområde |
+|--------|-------------------------|
+| **`selectedFeatures`** | *Valgte features (hovedutvalg)* |
+| **`selectedFeatureKind`** | *Hovedutvalg: ledning eller kum* — **`ledning`** (`line` m.fl.) eller **`kum`** (`manhole`). |
+| **`linkedKumFeatures`** | *Tilknyttede kum-features (spyling)* — valgfri liste; hvis tom og spyling er sann, brukes `kumFeatures` som reserve. |
+| **`spylingInkluderKummer`** | *Inkluder kummer ved spyling* (v1.3-semantikk). |
+| **`deduplicate`** | *Fjern duplikater*. |
 
-- **Outputs**  
-  - `equipmentCodes` — `string[]`  
-  - `equipmentCodesCsv` — Same list joined with `,` for SOAP / WebRequest.
+Når **`selectedFeatures`** har innhold, **prioriteres** denne veien; `lineFeatures` / `kumFeatures` brukes da ikke som hovedkilde.
+
+### Eldre mønster
+
+Uten innhold i **`selectedFeatures`**: bruk **`lineFeatures`** og **`kumFeatures`** som før.
+
+### Bakoverkompatibilitet
+
+`spylingInkluderKummer` utelatt → `inkluderKummer` / `includeKummer`. `lineEquipmentCodes`, `manholeFeatures` støttes.
+
+- **Merk** — «Catchments» er ikke kum.
+
+- **Outputs** — `equipmentCodes`, `equipmentCodesCsv`
 
 ## Build (lokalt)
 
